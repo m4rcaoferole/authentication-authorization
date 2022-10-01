@@ -1,5 +1,22 @@
 .container {
-  padding: 0 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  aling-items: center;
+  justify-content: center;
+}
+
+.input {
+  margin: 0 auto;
+  margin-bottom: 10px;
+  width: 400px;
+  display: flex;
+  justify-content: center;
+}
+
+.button {
+  width: 200px;
+  margin: 0 auto;
 }
 
 .main {
