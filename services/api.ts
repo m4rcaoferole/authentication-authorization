@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { parseCookies, setCookie } from "nookies";
+import { signOut } from "../contexts/AuthContext";
 
 let cookies = parseCookies();
 let isRefresning = false;
@@ -51,13 +52,15 @@ api.interceptors.response.use(
 
               api.defaults.headers["Authorization"] = `Bearer ${token}`;
 
-              faileRequestsQueue.forEach(request => request.onSucess(token))
+              faileRequestsQueue.forEach((request) => request.onSucess(token));
               faileRequestsQueue = [];
-            }).catch(err => {
-              faileRequestsQueue.forEach(request => request.onFailure(err))
+            })
+            .catch((err) => {
+              faileRequestsQueue.forEach((request) => request.onFailure(err));
               faileRequestsQueue = [];
-            }).finally(() => {
-              isRefresning = false
+            })
+            .finally(() => {
+              isRefresning = false;
             });
         }
 
@@ -74,7 +77,10 @@ api.interceptors.response.use(
           });
         });
       } else {
+        signOut();
       }
     }
+
+    return Promise.reject(error);
   }
 );
