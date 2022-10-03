@@ -1,44 +1,80 @@
-import axios,{ AxiosError } from 'axios';
-import { parseCookies, setCookie } from 'nookies'
+import axios, { AxiosError } from "axios";
+import { parseCookies, setCookie } from "nookies";
 
-let cookies = parseCookies()
+let cookies = parseCookies();
+let isRefresning = false;
+let faileRequestsQueue = [];
 
 export const api = axios.create({
-  baseURL: 'http://localhost:3333',
+  baseURL: "http://localhost:3333",
   headers: {
-    Authorization: `Bearer ${cookies['appbasic.token']}`,
-  }
-})
+    Authorization: `Bearer ${cookies["appbasic.token"]}`,
+  },
+});
 
-api.interceptors.response.use(response => {
-  return response;
-}, (error: AxiosError) => {
-  if (error.response?.status === 401) {
-    if (error.response.data?.code === 'token.expired') {
-      cookies = parseCookies();
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      if (error.response.data?.code === "token.expired") {
+        cookies = parseCookies();
 
-      const { 'appbasic.refreshToken': refreshToken } = cookies;
+        const { "appbasic.refreshToken": refreshToken } = cookies;
+        const originalConfig = error.config;
 
-      api.post('/refresh', {
-        refreshToken,
-      }).then(response => {
-        const { token } = response.data;
+        if (!isRefresning) {
+          isRefresning = true;
 
-        setCookie(undefined, 'appbasic.token', token, {
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-          path: '/',
-        })
-        
-        setCookie(undefined, 'appbasic.refreshToken', response.data.refreshToken, {
-          maxAge: 60 * 60 * 24 * 30, // 30 days
-          path: '/',
-        })
+          api
+            .post("/refresh", {
+              refreshToken,
+            })
+            .then((response) => {
+              const { token } = response.data;
 
-      api.defaults.headers['Authorization'] = `Bearer ${token}`;
-        
-      })
-    } else {
+              setCookie(undefined, "appbasic.token", token, {
+                maxAge: 60 * 60 * 24 * 30, // 30 days
+                path: "/",
+              });
 
+              setCookie(
+                undefined,
+                "appbasic.refreshToken",
+                response.data.refreshToken,
+                {
+                  maxAge: 60 * 60 * 24 * 30, // 30 days
+                  path: "/",
+                }
+              );
+
+              api.defaults.headers["Authorization"] = `Bearer ${token}`;
+
+              faileRequestsQueue.forEach(request => request.onSucess(token))
+              faileRequestsQueue = [];
+            }).catch(err => {
+              faileRequestsQueue.forEach(request => request.onFailure(err))
+              faileRequestsQueue = [];
+            }).finally(() => {
+              isRefresning = false
+            });
+        }
+
+        return new Promise((resolve, reject) => {
+          faileRequestsQueue.push({
+            onSucess: (token: string) => {
+              originalConfig.headers["Authorization"] = `Bearer ${token}`;
+
+              resolve(api(originalConfig));
+            },
+            onFailure: (err: AxiosError) => {
+              reject(err);
+            },
+          });
+        });
+      } else {
+      }
     }
   }
-})
+);
