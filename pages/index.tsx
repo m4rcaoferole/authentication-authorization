@@ -3,28 +3,39 @@ import { parseCookies } from "nookies";
 import { FormEvent, useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import styles from "../styles/Home.module.css";
+import { withSSRGuest } from "../utils/withSSRGuest";
 
 const Home: NextPage = () => {
-  const [email,setEmail] = useState('');
-  const [password,setPassord] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassord] = useState("");
 
-  const { signIn, isAuthenticated } = useContext(AuthContext)
+  const { signIn, isAuthenticated } = useContext(AuthContext);
 
   async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
+    event.preventDefault();
 
     const data = {
       email,
       password,
-    }
+    };
 
-    await signIn(data)
+    await signIn(data);
   }
 
   return (
     <form onSubmit={handleSubmit} className={styles.container}>
-      <input className={styles.input} type="email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input className={styles.input} type="password" value={password} onChange={e => setPassord(e.target.value)}/>
+      <input
+        className={styles.input}
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        className={styles.input}
+        type="password"
+        value={password}
+        onChange={(e) => setPassord(e.target.value)}
+      />
       <button className={styles.button} type="submit">
         Entrar
       </button>
@@ -34,19 +45,8 @@ const Home: NextPage = () => {
 
 export default Home;
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const cookies = parseCookies(ctx);
-  
-  if (cookies['appbasic.token']) {
-    return {
-      redirect: {
-        destination: '/dashboard',
-        permanent: false,
-      }
-    }
-  }
-
+export const getServerSideProps = withSSRGuest(async (ctx) => {
   return {
-    props: {}
-  }
-}
+    props: {},
+  };
+});
