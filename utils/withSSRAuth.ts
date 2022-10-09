@@ -3,9 +3,10 @@ import {
   GetServerSidePropsContext,
   GetServerSidePropsResult,
 } from "next";
-import { parseCookies } from "nookies";
+import { destroyCookie, parseCookies } from "nookies";
+import { AuthTokenError } from "../services/errors/AuthTokenError";
 
-export function withSSRAuth<P extends { [key: string]: unknown; }>(fn: GetServerSideProps<P>) {
+export function withSSRAuth<P>(fn: GetServerSideProps<P>) {
   return async (
     ctx: GetServerSidePropsContext
   ): Promise<GetServerSidePropsResult<P>> => {
@@ -20,6 +21,20 @@ export function withSSRAuth<P extends { [key: string]: unknown; }>(fn: GetServer
       };
     }
 
-    return await fn(ctx);
+    try {
+      return await fn(ctx);
+    } catch (err) {
+      if (err instanceof AuthTokenError) {
+        destroyCookie(ctx, "appbasic.token");
+        destroyCookie(ctx, "appbasic.refreshToken");
+
+        return {
+          redirect: {
+            destination: "/",
+            permanent: false,
+          },
+        };
+      }
+    }
   };
 }
