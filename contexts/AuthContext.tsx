@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
-import { setCookie, parseCookies, destroyCookie } from 'nookies'
+import { setCookie, parseCookies, destroyCookie } from "nookies";
 import Router from "next/router";
 
 import { api } from "../services/apiClient";
@@ -28,10 +28,10 @@ type AuthProviderProps = {
 export const AuthContext = createContext({} as AuthContextData);
 
 export function signOut() {
-  destroyCookie(undefined, 'appbasic.token')
-  destroyCookie(undefined, 'appbasic.refreshToken')
+  destroyCookie(undefined, "appbasic.token");
+  destroyCookie(undefined, "appbasic.refreshToken");
 
-  Router.push('/')
+  Router.push("/");
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -39,19 +39,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    const { 'appbasic.token': token } = parseCookies()
+    const { "appbasic.token": token } = parseCookies();
 
     if (token) {
-      api.get('/me').then(response => {
-        const { email, permissions, roles } = response.data
+      api
+        .get("/me")
+        .then((response) => {
+          const { email, permissions, roles } = response.data;
 
-        setUser({ email, permissions, roles })
-      })
-      .catch(() => {
-        signOut();
-      })
+          setUser({ email, permissions, roles });
+        })
+        .catch(() => {
+          signOut();
+        });
     }
-  }, [])
+  }, []);
 
   async function signIn({ email, password }: SignInCredentials) {
     try {
@@ -62,24 +64,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const { token, refreshToken, permissions, roles } = response.data;
 
-      setCookie(undefined, 'appbasic.token', token, {
+      setCookie(undefined, "appbasic.token", token, {
         maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: '/',
-      })
-      
-      setCookie(undefined, 'appbasic.refreshToken', refreshToken, {
+        path: "/",
+      });
+
+      setCookie(undefined, "appbasic.refreshToken", refreshToken, {
         maxAge: 60 * 60 * 24 * 30, // 30 days
-        path: '/',
-      })
- 
+        path: "/",
+      });
+
       setUser({
         email,
         permissions,
         roles,
       });
 
-      api.defaults.headers['Authorization'] = `Bearer ${token}`;
- 
+      api.defaults.headers["Authorization"] = `Bearer ${token}`;
+
       Router.push("/dashboard");
     } catch (err) {
       console.log(err);
