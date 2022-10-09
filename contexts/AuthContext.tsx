@@ -1,4 +1,11 @@
-import { createContext, ReactNode, useEffect, useState } from "react";
+import {
+  createContext,
+  MutableRefObject,
+  ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { setCookie, parseCookies, destroyCookie } from "nookies";
 import Router from "next/router";
 
@@ -16,9 +23,11 @@ type SignInCredentials = {
 };
 
 interface AuthContextData {
-  signIn(credentials: SignInCredentials): Promise<void>;
+  signIn: (credentials: SignInCredentials) => Promise<void>;
+  signOut: () => void;
   user?: User;
   isAuthenticated: boolean;
+  broadcastAuth: MutableRefObject<BroadcastChannel>;
 }
 
 type AuthProviderProps = {
@@ -37,6 +46,21 @@ export function signOut() {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>();
   const isAuthenticated = !!user;
+  const broadcastAuth = useRef<BroadcastChannel>(null);
+
+  useEffect(() => {
+    broadcastAuth.current = new BroadcastChannel("auth");
+
+    broadcastAuth.current.onmessage = (message) => {
+      switch (message.data) {
+        case "signOut":
+          signOut();
+          break;
+        default:
+          break;
+      }
+    };
+  }, [broadcastAuth]);
 
   useEffect(() => {
     const { "appbasic.token": token } = parseCookies();
@@ -89,7 +113,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, signIn, user }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, broadcastAuth, signIn, signOut, user }}
+    >
       {children}
     </AuthContext.Provider>
   );
